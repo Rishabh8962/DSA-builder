@@ -1,0 +1,74 @@
+{
+  "short_name": "PrepPilot",
+  "name": "PrepPilot — GATE & Placement OS",
+  "description": "Personal study planner, timetable, roadmap, DSA tracker, and preparation operating system for GATE CS 2027 and campus placements.",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#080d1a",
+  "theme_color": "#090e1c",
+  "categories": ["education", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Timetable",
+      "short_name": "Timetable",
+      "description": "Open your daily GATE & college schedule",
+      "url": "/?tab=timetable",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "DSA Java Tracker",
+      "short_name": "DSA",
+      "description": "Practice and review DSA problems",
+      "url": "/?tab=dsa",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "GATE Prep",
+      "short_name": "GATE",
+      "description": "Track 12 GATE CS subjects & PYQs",
+      "url": "/?tab=gate",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Focus Session",
+      "short_name": "Focus",
+      "description": "Launch Pomodoro & deep study flow session",
+      "url": "/?tab=analytics",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

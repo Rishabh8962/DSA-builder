@@ -1,0 +1,6 @@
+{
+  "name": "PrepPilot — GATE & Placement OS",
+  "description": "Personal study planner, timetable, roadmap, DSA tracker, and preparation operating system for GATE CS 2027 and campus placements.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
