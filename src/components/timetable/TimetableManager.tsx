@@ -13,11 +13,14 @@ import {
 } from 'lucide-react';
 import { TimetableBlock, TimeSlotCategory } from '../../types';
 import { playNotificationChime } from '../../lib/notifications';
+import { getLiveDateString, getLiveDayOfWeekType } from '../../lib/dateTime';
 
 interface TimetableManagerProps {
   weekdayBlocks: TimetableBlock[];
   saturdayBlocks: TimetableBlock[];
   sundayBlocks: TimetableBlock[];
+  todayDateStr?: string;
+  liveDayType?: 'weekday' | 'saturday' | 'sunday';
   onUpdateWeekday: (blocks: TimetableBlock[]) => void;
   onUpdateSaturday: (blocks: TimetableBlock[]) => void;
   onUpdateSunday: (blocks: TimetableBlock[]) => void;
@@ -29,13 +32,15 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
   weekdayBlocks,
   saturdayBlocks,
   sundayBlocks,
+  todayDateStr = getLiveDateString(),
+  liveDayType = getLiveDayOfWeekType(),
   onUpdateWeekday,
   onUpdateSaturday,
   onUpdateSunday,
   onResetTimetables,
   onOpenRecoveryModal
 }) => {
-  const [activeTab, setActiveTab] = useState<'weekday' | 'saturday' | 'sunday'>('weekday');
+  const [activeTab, setActiveTab] = useState<'weekday' | 'saturday' | 'sunday'>(liveDayType);
   const [editingBlock, setEditingBlock] = useState<TimetableBlock | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -60,7 +65,6 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
   };
 
   const handleToggleComplete = (id: string) => {
-    const todayDateStr = '2026-10-27';
     const current = getCurrentBlocks();
     const updated = current.map(b => {
       if (b.id === id) {
@@ -165,19 +169,27 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
       {/* Tabs */}
       <div className="flex items-center justify-between border-b border-slate-800">
         <div className="flex gap-2">
-          {(['weekday', 'saturday', 'sunday'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`border-b-2 py-2.5 px-4 text-xs font-bold capitalize transition-all ${
-                activeTab === tab
-                  ? 'border-indigo-500 text-indigo-300'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {tab === 'weekday' ? 'Weekday Schedule (Mon–Fri)' : tab === 'saturday' ? 'Saturday Schedule' : 'Sunday Schedule'}
-            </button>
-          ))}
+          {(['weekday', 'saturday', 'sunday'] as const).map(tab => {
+            const isToday = tab === liveDayType;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`border-b-2 py-2.5 px-4 text-xs font-bold capitalize transition-all flex items-center gap-1.5 ${
+                  activeTab === tab
+                    ? 'border-indigo-500 text-indigo-300'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>{tab === 'weekday' ? 'Weekday (Mon–Fri)' : tab === 'saturday' ? 'Saturday Schedule' : 'Sunday Schedule'}</span>
+                {isToday && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    TODAY
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         <button
@@ -205,7 +217,7 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
       {/* Schedule Blocks List */}
       <div className="space-y-3">
         {currentBlocks.map(block => {
-          const isDone = block.completedDate === '2026-10-27';
+          const isDone = block.completedDate === todayDateStr;
           return (
             <div
               key={block.id}

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DailyHabits, UserSettings } from '../../types';
 import { playNotificationChime } from '../../lib/notifications';
+import { getLiveFormattedDate } from '../../lib/dateTime';
 
 interface HabitsViewProps {
   habits: DailyHabits[];
@@ -130,15 +131,15 @@ export const HabitsView: React.FC<HabitsViewProps> = ({
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-extrabold text-white flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-indigo-400" />
-              <span>Habits & Digital Wellbeing</span>
+              <span>Habits &amp; Daily Discipline</span>
             </h1>
-            <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-xs font-mono font-semibold text-amber-300 flex items-center gap-1">
-              <Flame className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-xs font-mono font-semibold text-amber-300 flex items-center gap-1 border border-amber-500/30">
+              <Flame className={`h-3.5 w-3.5 ${streak > 0 ? 'fill-amber-400 text-amber-400 animate-pulse' : 'text-slate-500'}`} />
               <span>{streak} Day Streak</span>
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Build unshakeable daily consistency while curbing screen time from 3–5 hrs to ≤30 minutes.
+            Tracking for <span className="text-slate-200 font-semibold">{getLiveFormattedDate()}</span> • Build unshakeable daily consistency while curbing screen time to ≤30 minutes.
           </p>
         </div>
 

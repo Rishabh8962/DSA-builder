@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { DSAProblem, DSADifficulty, DSAStatus } from '../../types';
 import { calculateDSAStats, calculateNextSpacedRevisionDate } from '../../lib/calculations';
+import { getLiveDateString } from '../../lib/dateTime';
 import { playNotificationChime } from '../../lib/notifications';
 
 interface DSAViewProps {
@@ -65,7 +66,7 @@ export const DSAView: React.FC<DSAViewProps> = ({
         return {
           ...p,
           status: newStatus,
-          solvedDate: newStatus === 'Solved' ? '2026-10-27' : p.solvedDate,
+          solvedDate: newStatus === 'Solved' ? getLiveDateString() : p.solvedDate,
           revisionStage: nextStage,
           spacedRevisionDue: nextRevision
         };

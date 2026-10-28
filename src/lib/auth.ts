@@ -63,9 +63,10 @@ function saveStoredUsers(users: UserProfile[]) {
 
 export const AuthService = {
   /**
-   * Initializes users table and guarantees Rishabh Gautam exists as Super Admin.
+   * Initializes users table and ensures Super Admin seed exists in database,
+   * but requires explicit user login before access is granted.
    */
-  init(): UserProfile {
+  init(): UserProfile | null {
     let users = getStoredUsers();
 
     // Check if super admin exists
@@ -74,7 +75,7 @@ export const AuthService = {
     );
 
     if (adminIndex === -1) {
-      // Seed Super Admin Rishabh Gautam
+      // Seed Super Admin
       users = [SUPER_ADMIN_CREDENTIALS, ...users];
       saveStoredUsers(users);
     } else {
@@ -87,19 +88,15 @@ export const AuthService = {
       saveStoredUsers(users);
     }
 
-    // Check if session exists
+    // Check if an existing authenticated session is stored in localStorage
     const current = this.getCurrentUser();
     if (!current) {
-      // Default initial session to Super Admin Rishabh Gautam
-      const admin = users.find(
-        u => u.email.toLowerCase() === SUPER_ADMIN_CREDENTIALS.email.toLowerCase()
-      ) || SUPER_ADMIN_CREDENTIALS;
-      this.setCurrentUser(admin);
-      return admin;
+      // No active session: Return null so the mandatory login screen is presented
+      return null;
     }
 
-    // Refresh current user data from users list
-    const refreshed = users.find(u => u.id === current.id);
+    // Refresh current user data from users list in case status or details changed
+    const refreshed = users.find(u => u.id === current.id || u.email.toLowerCase() === current.email.toLowerCase());
     if (refreshed) {
       this.setCurrentUser(refreshed);
       return refreshed;

@@ -23,11 +23,17 @@ import { StorageService } from '../../lib/storage';
 import { playNotificationChime } from '../../lib/notifications';
 import { UserProfile, AuthService } from '../../lib/auth';
 import { isStandaloneApp } from '../../lib/pwa';
+import {
+  getLiveShortDate,
+  getLiveDayName,
+  getPreparationDayNumber
+} from '../../lib/dateTime';
 
 interface HeaderProps {
   onOpenFocusModal: () => void;
   onOpenRecoveryModal: () => void;
   streak: number;
+  streakStatusMessage?: string;
   todayHabits: DailyHabits;
   currentUser: UserProfile;
   onOpenAuthModal: () => void;
@@ -43,6 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenFocusModal,
   onOpenRecoveryModal,
   streak,
+  streakStatusMessage,
   currentUser,
   onOpenAuthModal,
   onOpenProfileModal,
@@ -57,6 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [currentTimeStr, setCurrentTimeStr] = useState('');
+  const [currentDateObj, setCurrentDateObj] = useState<Date>(() => new Date());
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
@@ -65,6 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
 
     const updateClock = () => {
       const now = new Date();
+      setCurrentDateObj(now);
       const options: Intl.DateTimeFormatOptions = {
         timeZone: 'Asia/Kolkata',
         hour: '2-digit',
@@ -126,15 +135,32 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
           <p className="text-xs text-slate-400 flex items-center gap-1.5 font-mono">
-            <Clock className="h-3 w-3 text-indigo-400" />
-            <span>IST: {currentTimeStr || '06:00:00 AM'}</span>
-            <span className="hidden md:inline text-slate-500">• Oct 27, 2026 (Day 1)</span>
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-slate-200">IST: {currentTimeStr || '06:00:00 AM'}</span>
+            <span className="hidden md:inline text-slate-400">
+              • {getLiveDayName(currentDateObj)}, {getLiveShortDate(currentDateObj)} (Day {getPreparationDayNumber('2026-10-27', currentDateObj).dayNumber} of {getPreparationDayNumber('2026-10-27', currentDateObj).totalDays})
+            </span>
           </p>
         </div>
       </div>
 
       {/* Right: Quick actions, notifications, streak, focus, user profile */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Super Admin Approval Notice Alert Pill */}
+        {isSuperAdmin && pendingApprovalsCount > 0 && (
+          <button
+            onClick={onOpenAdminModal}
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/20 hover:bg-amber-500/30 px-2.5 py-1 text-xs font-bold text-amber-300 animate-pulse transition-all shadow-md shadow-amber-500/20"
+            title={`${pendingApprovalsCount} new student registration(s) pending your review & approval`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
+            <span>{pendingApprovalsCount} Pending Approval{pendingApprovalsCount > 1 ? 's' : ''}</span>
+          </button>
+        )}
+
         {/* PWA Install Button */}
         {!isStandalone ? (
           <button
@@ -169,9 +195,9 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Streak Badge */}
         <div 
           className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300"
-          title={`${streak} Day Streak`}
+          title={streakStatusMessage || `${streak} Day Preparation Streak`}
         >
-          <Flame className="h-4 w-4 fill-amber-400 text-amber-400 animate-pulse" />
+          <Flame className={`h-4 w-4 ${streak > 0 ? 'fill-amber-400 text-amber-400 animate-pulse' : 'text-slate-500'}`} />
           <span>{streak}d</span>
         </div>
 

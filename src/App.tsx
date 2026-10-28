@@ -25,6 +25,12 @@ import {
   calculateDSAStats,
   calculateNextSpacedRevisionDate
 } from './lib/calculations';
+import {
+  getLiveDateString,
+  getLiveDayOfWeekType,
+  getLiveMinutesOfDay,
+  calculateLiveStreak
+} from './lib/dateTime';
 import { AuthService, UserProfile, SUPER_ADMIN_CREDENTIALS } from './lib/auth';
 import { registerServiceWorker } from './lib/pwa';
 
@@ -119,21 +125,34 @@ export default function App() {
     setFocusSessions(StorageService.getFocusSessions(currentUser.id));
   }, [currentUser, allUsersVersion]);
 
-  // Today's habit log (Oct 27, 2026)
-  const todayDateStr = '2026-10-27';
+  // Real-time ticking clock (updates state every second)
+  const [now, setNow] = useState<Date>(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const todayDateStr = getLiveDateString(now);
+  const dayOfWeekType = getLiveDayOfWeekType(now);
+  const currentMinutesOfDay = getLiveMinutesOfDay(now);
+
+  // Dynamic habit log for today
   const todayHabits: DailyHabits = habits.find(h => h.date === todayDateStr) || {
     date: todayDateStr,
-    wakeUpOnTime: true,
-    morningGateSession: true,
+    wakeUpOnTime: false,
+    morningGateSession: false,
     attendCollege: false,
     dsaPractice: false,
     aptitudeRevision: false,
     exerciseGym: false,
     sleepBy1030: false,
-    socialMediaMinutes: 15
+    socialMediaMinutes: 0
   };
 
-  const { currentStreak, weeklyConsistencyPercent } = calculateHabitStreak(habits, todayDateStr);
+  const liveStreakData = calculateLiveStreak(habits, todayDateStr);
   const gateProgress = calculateOverallGateProgress(gateSubjects);
   const dsaStats = calculateDSAStats(dsaProblems);
 
@@ -330,21 +349,13 @@ export default function App() {
     setIsAuthModalOpen(true);
   };
 
-  const handleSwitchToSuperAdmin = () => {
-    const res = AuthService.login(SUPER_ADMIN_CREDENTIALS.email, SUPER_ADMIN_CREDENTIALS.password);
-    if (res.success && res.user) {
-      setCurrentUser(res.user);
-      setIsAdminModalOpen(true);
-      setAllUsersVersion(v => v + 1);
-    }
-  };
-
-  // IF USER IS NOT LOGGED IN AT ALL
+  // IF USER IS NOT LOGGED IN AT ALL: MANDATORY LOGIN GATE
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-[#080d1a] text-slate-100 flex items-center justify-center p-4 font-sans">
         <AuthModal
           isOpen={true}
+          isMandatoryGate={true}
           onClose={() => {}}
           onAuthSuccess={handleAuthSuccess}
         />
@@ -352,32 +363,41 @@ export default function App() {
     );
   }
 
-  // CRITICAL REQUIREMENT: HIDE ALL FEATURES AND TIMETABLES FROM NEW USERS UNLESS APPROVED BY SUPER ADMIN RISHABH GAUTAM
+  // MANDATORY SECURITY GATE: HIDE ALL FEATURES AND TIMETABLES FROM PENDING/REJECTED USERS
   if (currentUser.status === 'pending' || currentUser.status === 'rejected') {
     return (
       <PendingApprovalScreen
         user={currentUser}
         onRefreshUser={() => {
-          const refreshed = AuthService.getCurrentUser();
+          const allUsers = AuthService.getAllUsers();
+          const refreshed = allUsers.find(
+            u => u.id === currentUser.id || u.email.toLowerCase() === currentUser.email.toLowerCase()
+          );
           if (refreshed) {
+            AuthService.setCurrentUser(refreshed);
             setCurrentUser({ ...refreshed });
             setAllUsersVersion(v => v + 1);
           }
         }}
         onLogout={handleLogout}
-        onSwitchToSuperAdmin={handleSwitchToSuperAdmin}
+        onOpenAdminLogin={() => {
+          AuthService.logout();
+          setCurrentUser(null);
+          setIsAuthModalOpen(true);
+        }}
       />
     );
   }
 
-  // APPROVED USER (SUPER ADMIN RISHABH GAUTAM OR APPROVED STUDENT)
+  // APPROVED USER (SUPER ADMIN OR APPROVED STUDENT)
   return (
     <div className="min-h-screen bg-[#080d1a] text-slate-100 flex flex-col font-sans">
-      {/* Sticky Header */}
+      {/* Sticky Header with Live Clock & Date */}
       <Header
         onOpenFocusModal={() => setIsFocusModalOpen(true)}
         onOpenRecoveryModal={() => setIsRecoveryModalOpen(true)}
-        streak={currentStreak}
+        streak={liveStreakData.currentStreak}
+        streakStatusMessage={liveStreakData.statusMessage}
         todayHabits={todayHabits}
         currentUser={currentUser}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
@@ -415,8 +435,14 @@ export default function App() {
               dsaProblems={dsaProblems}
               todayHabits={todayHabits}
               userSettings={settings}
-              streak={currentStreak}
-              weeklyConsistency={weeklyConsistencyPercent}
+              streak={liveStreakData.currentStreak}
+              weeklyConsistency={liveStreakData.weeklyConsistencyPercent}
+              todayDateStr={todayDateStr}
+              dayOfWeekType={dayOfWeekType}
+              currentMinutesOfDay={currentMinutesOfDay}
+              currentUserName={currentUser.name}
+              streakStatusMessage={liveStreakData.statusMessage}
+              isTodayStreakCompleted={liveStreakData.isTodayCompleted}
               onToggleBlockComplete={handleToggleBlockComplete}
               onOpenFocusModal={() => setIsFocusModalOpen(true)}
               onOpenRecoveryModal={() => setIsRecoveryModalOpen(true)}
@@ -433,6 +459,8 @@ export default function App() {
               weekdayBlocks={weekdayBlocks}
               saturdayBlocks={saturdayBlocks}
               sundayBlocks={sundayBlocks}
+              todayDateStr={todayDateStr}
+              liveDayType={dayOfWeekType}
               onUpdateWeekday={handleUpdateWeekday}
               onUpdateSaturday={handleUpdateSaturday}
               onUpdateSunday={handleUpdateSunday}
@@ -509,8 +537,8 @@ export default function App() {
               habits={habits}
               todayHabits={todayHabits}
               onUpdateTodayHabits={handleUpdateTodayHabits}
-              streak={currentStreak}
-              weeklyConsistency={weeklyConsistencyPercent}
+              streak={liveStreakData.currentStreak}
+              weeklyConsistency={liveStreakData.weeklyConsistencyPercent}
               userSettings={settings}
               onOpenFocusModal={() => setIsFocusModalOpen(true)}
             />
@@ -524,6 +552,7 @@ export default function App() {
               mockTests={mockTests}
               weekdayBlocks={weekdayBlocks}
               focusSessions={focusSessions}
+              todayDateStr={todayDateStr}
               onAddFocusSession={handleAddFocusSession}
               onOpenFocusModal={() => setIsFocusModalOpen(true)}
             />

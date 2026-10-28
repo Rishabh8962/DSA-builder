@@ -30,11 +30,19 @@ import {
 import {
   calculateDaysRemaining,
   calculateTodayStudyStats,
-  getNextUpcomingTask,
   calculateDSAStats,
   calculateOverallGateProgress
 } from '../../lib/calculations';
 import { playNotificationChime } from '../../lib/notifications';
+import {
+  getLiveDateString,
+  getLiveDayOfWeekType,
+  getLiveDayName,
+  getLiveFormattedDate,
+  getLiveMinutesOfDay,
+  getPreparationDayNumber,
+  getLiveTaskStatus
+} from '../../lib/dateTime';
 
 interface DashboardViewProps {
   weekdayBlocks: TimetableBlock[];
@@ -46,6 +54,12 @@ interface DashboardViewProps {
   userSettings: UserSettings;
   streak: number;
   weeklyConsistency: number;
+  todayDateStr?: string;
+  dayOfWeekType?: 'weekday' | 'saturday' | 'sunday';
+  currentMinutesOfDay?: number;
+  currentUserName?: string;
+  streakStatusMessage?: string;
+  isTodayStreakCompleted?: boolean;
   onToggleBlockComplete: (blockId: string) => void;
   onOpenFocusModal: () => void;
   onOpenRecoveryModal: () => void;
@@ -66,6 +80,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   userSettings,
   streak,
   weeklyConsistency,
+  todayDateStr = getLiveDateString(),
+  dayOfWeekType = getLiveDayOfWeekType(),
+  currentMinutesOfDay = getLiveMinutesOfDay(),
+  currentUserName = 'Student',
+  streakStatusMessage,
+  isTodayStreakCompleted = false,
   onToggleBlockComplete,
   onOpenFocusModal,
   onOpenRecoveryModal,
@@ -77,27 +97,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const [socialInput, setSocialInput] = useState<string>(String(todayHabits.socialMediaMinutes || ''));
 
-  // Day determination: 2026-10-27 is a Tuesday
-  const todayDateStr = '2026-10-27';
   const gateDaysRemaining = calculateDaysRemaining(userSettings.gateExamDate);
   const placementDaysRemaining = calculateDaysRemaining(userSettings.placementMilestoneDate);
 
-  // Active timetable blocks for today (Tuesday = weekday)
-  const activeBlocks = weekdayBlocks;
+  // Dynamically select timetable routine based on real day of week:
+  const activeBlocks = dayOfWeekType === 'saturday'
+    ? saturdayBlocks
+    : dayOfWeekType === 'sunday'
+    ? sundayBlocks
+    : weekdayBlocks;
 
-  // Study hours stats
+  const dayName = getLiveDayName();
+  const liveFullDate = getLiveFormattedDate();
+  const { dayNumber, totalDays } = getPreparationDayNumber('2026-10-27');
+
+  // Study hours stats for today
   const studyStats = calculateTodayStudyStats(activeBlocks, todayDateStr);
 
-  // Upcoming task
-  const currentMinutesOfDay = 380; // 06:20 AM
-  const { currentTask, nextTask } = getNextUpcomingTask(activeBlocks, currentMinutesOfDay);
+  // Live real-time task status & countdowns
+  const {
+    currentTask,
+    nextTask,
+    minutesRemainingInCurrent,
+    minutesUntilNext
+  } = getLiveTaskStatus(activeBlocks, currentMinutesOfDay);
 
   // DSA and GATE stats
   const dsaStats = calculateDSAStats(dsaProblems);
   const gateProgress = calculateOverallGateProgress(gateSubjects);
 
-  // Spaced repetition due problems
-  const dueProblems = dsaProblems.filter(p => p.status === 'Needs Revision' || (p.spacedRevisionDue && p.spacedRevisionDue <= '2026-10-28'));
+  // Spaced repetition due problems (due today or earlier)
+  const dueProblems = dsaProblems.filter(
+    p => p.status === 'Needs Revision' || (p.spacedRevisionDue && p.spacedRevisionDue <= todayDateStr)
+  );
 
   const handleSaveSocial = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,10 +148,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-300 mb-2">
               <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-              <span>Day 1 of 156 • October 27, 2026</span>
+              <span>Day {dayNumber} of {totalDays} • {liveFullDate}</span>
             </div>
             <h1 className="text-xl lg:text-2xl font-extrabold text-white tracking-tight">
-              Welcome to PrepPilot, Rishabh.
+              Welcome to PrepPilot, {currentUserName}.
             </h1>
             <p className="mt-1 text-xs lg:text-sm text-slate-300 max-w-2xl leading-relaxed">
               Targeting <span className="text-indigo-400 font-semibold">70+ marks</span> in GATE CS 2027 and campus placement readiness. You have 9 AM–5 PM college and 6–8 PM gym—every focused minute counts.
@@ -367,9 +399,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400">
-                  Current / Next Agenda Slot
+                  {currentTask ? 'Current Active Slot' : 'Next Scheduled Slot'}
                 </span>
-                <span className="rounded-md bg-indigo-500/20 px-2 py-0.5 text-[10px] font-mono text-indigo-300">
+                {currentTask ? (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 text-[10px] font-bold font-mono text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    LIVE ({minutesRemainingInCurrent}m left)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-indigo-500/20 border border-indigo-500/30 px-2 py-0.5 text-[10px] font-bold font-mono text-indigo-300">
+                    Next in {minutesUntilNext}m
+                  </span>
+                )}
+                <span className="rounded-md bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-slate-400">
                   IST
                 </span>
               </div>
@@ -422,10 +464,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div>
               <h2 className="text-sm lg:text-base font-bold text-white flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-indigo-400" />
-                <span>Today's Schedule & Check-ins</span>
+                <span>Today's Schedule ({dayName} Routine)</span>
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Weekday routine with protected College (9–5), Gym (6–8), and Sleep (10:30 PM)
+                {dayOfWeekType === 'saturday'
+                  ? 'Saturday schedule: Full-length mock test + in-depth analysis'
+                  : dayOfWeekType === 'sunday'
+                  ? 'Sunday schedule: Weekly revision + weak topic remediation'
+                  : 'Weekday routine with protected College (9–5), Gym (6–8), and Sleep (10:30 PM)'}
               </p>
             </div>
             <button
@@ -520,22 +566,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Consistency Card */}
           <div className="rounded-2xl border border-slate-800 bg-[#0b1020] p-5 shadow-xl">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
-              <span>Weekly Discipline</span>
+              <span>Preparation Streak &amp; Discipline</span>
               <TrendingUp className="h-4 w-4 text-emerald-400" />
             </h3>
             <div className="flex items-center justify-between mb-3">
-              <div>
-                <span className="text-2xl font-extrabold text-white font-mono">{streak}</span>
-                <span className="text-xs text-slate-400 ml-1.5">days streak</span>
+              <div className="flex items-center gap-2">
+                <Flame className={`h-7 w-7 ${streak > 0 ? 'text-amber-400 fill-amber-400 animate-pulse' : 'text-slate-600'}`} />
+                <div>
+                  <span className="text-2xl font-extrabold text-white font-mono">{streak}</span>
+                  <span className="text-xs text-slate-400 ml-1.5">{streak === 1 ? 'day streak' : 'days streak'}</span>
+                </div>
               </div>
               <div className="text-right">
                 <span className="text-lg font-bold text-emerald-400 font-mono">{weeklyConsistency}%</span>
-                <span className="text-[11px] text-slate-400 block">Consistency</span>
+                <span className="text-[10px] text-slate-400 block">7-Day Consistency</span>
               </div>
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              Consistently hitting morning GATE session + evening DSA in Java ensures high retention and placement readiness.
-            </p>
+            <div className={`rounded-xl p-3 text-xs leading-relaxed border ${
+              isTodayStreakCompleted
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                : streak > 0
+                ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                : 'border-slate-800 bg-slate-900/60 text-slate-400'
+            }`}>
+              {streakStatusMessage || 'Complete today’s Morning GATE session + DSA practice to ignite and maintain your preparation streak.'}
+            </div>
           </div>
 
           {/* GATE CS Quick Card */}

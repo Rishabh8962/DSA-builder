@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { FocusSession, DeepWorkDayCell } from '../../types';
 import { calculateDeepWorkHeatmap } from '../../lib/calculations';
+import { getLiveDateString } from '../../lib/dateTime';
 
 interface DeepWorkAnalyticsWidgetProps {
   sessions: FocusSession[];
@@ -27,7 +28,7 @@ export const DeepWorkAnalyticsWidget: React.FC<DeepWorkAnalyticsWidgetProps> = (
   sessions,
   onAddSession,
   onOpenFocusModal,
-  todayDateStr = '2026-10-27'
+  todayDateStr = getLiveDateString()
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'GATE' | 'DSA' | 'Aptitude' | 'Revision'>('ALL');
   const [selectedDay, setSelectedDay] = useState<DeepWorkDayCell | null>(null);

@@ -11,7 +11,8 @@ import {
   Lock,
   ArrowRight,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Key
 } from 'lucide-react';
 import { UserProfile, SUPER_ADMIN_CREDENTIALS, AuthService } from '../../lib/auth';
 
@@ -19,29 +20,32 @@ interface PendingApprovalScreenProps {
   user: UserProfile;
   onRefreshUser: () => void;
   onLogout: () => void;
-  onSwitchToSuperAdmin: () => void;
+  onOpenAdminLogin: () => void;
 }
 
 export const PendingApprovalScreen: React.FC<PendingApprovalScreenProps> = ({
   user,
   onRefreshUser,
   onLogout,
-  onSwitchToSuperAdmin
+  onOpenAdminLogin
 }) => {
   const [checking, setChecking] = useState(false);
-  const [pingSent, setPingSent] = useState(false);
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
 
   const handleCheckStatus = () => {
     setChecking(true);
+    setStatusFeedback(null);
     setTimeout(() => {
       onRefreshUser();
       setChecking(false);
+      const allUsers = AuthService.getAllUsers();
+      const current = allUsers.find(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
+      if (current && current.status === 'approved') {
+        setStatusFeedback('Your ID and account have been approved! Loading workspace...');
+      } else {
+        setStatusFeedback('Still under review. Please notify Super Admin to approve your account.');
+      }
     }, 700);
-  };
-
-  const handleSendPing = () => {
-    setPingSent(true);
-    setTimeout(() => setPingSent(false), 5000);
   };
 
   const isRejected = user.status === 'rejected';
@@ -63,7 +67,7 @@ export const PendingApprovalScreen: React.FC<PendingApprovalScreenProps> = ({
             {isRejected ? <ShieldAlert className="h-10 w-10" /> : <Lock className="h-10 w-10" />}
           </div>
           <span className="absolute -bottom-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border border-slate-700 bg-slate-900 text-slate-300 shadow">
-            {isRejected ? 'Access Rejected' : 'Security Gate Active'}
+            {isRejected ? 'Access Restricted' : 'Security Approval Gate'}
           </span>
         </div>
 
@@ -75,11 +79,11 @@ export const PendingApprovalScreen: React.FC<PendingApprovalScreenProps> = ({
           <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
             {isRejected
               ? 'Your account request was declined. Please contact the administrator for clarification.'
-              : 'All timetables, GATE CS subjects, and DSA features are hidden from new accounts until verified and approved by the Super Admin.'}
+              : 'All timetables, GATE CS subjects, and DSA trackers remain locked until your student ID & credentials are reviewed and approved by the Super Admin.'}
           </p>
         </div>
 
-        {/* Status Card */}
+        {/* Student Credential Card */}
         <div className="rounded-2xl border border-slate-800 bg-[#0c1224]/90 p-5 backdrop-blur-md shadow-2xl text-left space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
             <div className="flex items-center gap-3">
@@ -96,7 +100,7 @@ export const PendingApprovalScreen: React.FC<PendingApprovalScreenProps> = ({
                 ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
                 : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
             }`}>
-              {isRejected ? 'Status: Rejected' : 'Status: Under Review'}
+              {isRejected ? 'Status: Rejected' : 'Status: Pending Approval'}
             </span>
           </div>
 
@@ -105,7 +109,7 @@ export const PendingApprovalScreen: React.FC<PendingApprovalScreenProps> = ({
               <span className="text-[11px] text-slate-400 block mb-0.5">Assigned Super Admin</span>
               <span className="font-semibold text-slate-200 flex items-center gap-1.5">
                 <ShieldCheck className="h-3.5 w-3.5 text-indigo-400" />
-                Rishabh Gautam
+                {SUPER_ADMIN_CREDENTIALS.name}
               </span>
               <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
                 {SUPER_ADMIN_CREDENTIALS.email}
@@ -113,9 +117,9 @@ export const PendingApprovalScreen: React.FC<PendingApprovalScreenProps> = ({
             </div>
 
             <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-              <span className="text-[11px] text-slate-400 block mb-0.5">College / Target</span>
-              <span className="font-semibold text-slate-200 truncate block">
-                {user.college || 'Engineering College'}
+              <span className="text-[11px] text-slate-400 block mb-0.5">Student ID &amp; Target</span>
+              <span className="font-semibold text-slate-200 font-mono truncate block">
+                {user.id}
               </span>
               <span className="text-[10px] text-emerald-400 font-mono block mt-0.5">
                 Target Score: {user.targetGateScore || 70}+
@@ -127,10 +131,10 @@ export const PendingApprovalScreen: React.FC<PendingApprovalScreenProps> = ({
           <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-3.5 text-xs text-slate-300 space-y-1.5">
             <div className="flex items-center gap-1.5 font-semibold text-indigo-300">
               <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-              <span>Multi-Tenant Profile Isolation</span>
+              <span>Multi-Tenant Access Gate</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              To keep each student's preparation timetable and progress strictly private and separate, Super Admin Rishabh Gautam reviews each registration. Once approved, your personalized workspace will activate automatically.
+              To guarantee individual timetable privacy and maintain multi-tenant integrity, new student profiles must be approved by Super Admin {SUPER_ADMIN_CREDENTIALS.name}. Once approved, you will have immediate access upon login.
             </p>
           </div>
         </div>
@@ -147,14 +151,14 @@ export const PendingApprovalScreen: React.FC<PendingApprovalScreenProps> = ({
             <span>Check Approval Status</span>
           </button>
 
-          {/* Quick Switch to Super Admin for Admin Review */}
+          {/* Switch to Super Admin Login with Password */}
           <button
-            onClick={onSwitchToSuperAdmin}
+            onClick={onOpenAdminLogin}
             className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl border border-indigo-500/40 bg-indigo-500/10 px-4 py-2.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/20 transition-all"
-            title="Log in as Rishabh Gautam (Super Admin) to approve this user"
+            title="Sign in with Super Admin credentials to approve student accounts"
           >
-            <ShieldCheck className="h-4 w-4 text-indigo-400" />
-            <span>Log in as Super Admin (Rishabh)</span>
+            <Key className="h-4 w-4 text-indigo-400" />
+            <span>Super Admin Sign In</span>
           </button>
 
           {/* Log Out */}
@@ -163,13 +167,13 @@ export const PendingApprovalScreen: React.FC<PendingApprovalScreenProps> = ({
             className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
           >
             <LogOut className="h-3.5 w-3.5" />
-            <span>Log Out</span>
+            <span>Sign Out</span>
           </button>
         </div>
 
-        {pingSent && (
-          <p className="text-xs text-emerald-400 animate-fade-in flex items-center justify-center gap-1">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Request sent to Rishabh Gautam ({SUPER_ADMIN_CREDENTIALS.email})!
+        {statusFeedback && (
+          <p className="text-xs text-indigo-300 animate-fade-in flex items-center justify-center gap-1">
+            <CheckCircle2 className="h-3.5 w-3.5 text-indigo-400" /> {statusFeedback}
           </p>
         )}
       </div>

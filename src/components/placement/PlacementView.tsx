@@ -64,7 +64,7 @@ export const PlacementView: React.FC<PlacementViewProps> = ({
       status: 'Wishlist',
       interviewStages: ['OA', 'Technical 1', 'HR'],
       notes,
-      updatedAt: '2026-10-27'
+      updatedAt: new Date().toISOString().split('T')[0]
     };
 
     onUpdateCompanies([newCompany, ...companies]);

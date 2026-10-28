@@ -30,6 +30,7 @@ import {
   FocusSession
 } from '../../types';
 import { calculateDSAStats, calculateOverallGateProgress } from '../../lib/calculations';
+import { getLiveDateString } from '../../lib/dateTime';
 import { DeepWorkAnalyticsWidget } from './DeepWorkAnalyticsWidget';
 
 interface AnalyticsViewProps {
@@ -39,6 +40,7 @@ interface AnalyticsViewProps {
   mockTests: MockTest[];
   weekdayBlocks: TimetableBlock[];
   focusSessions?: FocusSession[];
+  todayDateStr?: string;
   onAddFocusSession?: (session: FocusSession) => void;
   onOpenFocusModal?: () => void;
 }
@@ -50,9 +52,11 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   mockTests,
   weekdayBlocks,
   focusSessions = [],
+  todayDateStr: propTodayDateStr,
   onAddFocusSession,
   onOpenFocusModal
 }) => {
+  const todayDateStr = propTodayDateStr || getLiveDateString();
   const dsaStats = calculateDSAStats(dsaProblems);
   const gateProgress = calculateOverallGateProgress(gateSubjects);
 
@@ -129,7 +133,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         sessions={focusSessions}
         onAddSession={onAddFocusSession}
         onOpenFocusModal={onOpenFocusModal}
-        todayDateStr="2026-10-27"
+        todayDateStr={todayDateStr}
       />
 
       {/* Primary Charts Grid */}
