@@ -1,0 +1,8 @@
+node_modules
+.git
+.vercel
+dist
+.env*
+!.env.example
+*.png
+.aistudio
